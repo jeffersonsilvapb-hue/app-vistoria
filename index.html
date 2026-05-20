@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vistoria de Terrenos Pro</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#059669">
+
+    <style>
+        :root {
+            --primary: #059669;       
+            --primary-hover: #047857;
+            --background: #F3F4F6;
+            --surface: #FFFFFF;
+            --text: #1F2937;
+            --border: #D1D5DB;
+            --accent: #2563EB; /* Azul para botões utilitários */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--background);
+            color: var(--text);
+            padding-bottom: 40px;
+        }
+
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 16px;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        main {
+            padding: 16px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: var(--surface);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            font-size: 1.1rem;
+            margin-bottom: 16px;
+            color: var(--primary);
+            border-bottom: 2px solid #E5E7EB;
+            padding-bottom: 6px;
+            margin-top: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="date"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 1rem;
+            background-color: #FAFAFA;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            background-color: #FFF;
+        }
+
+        .input-btn-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-utility {
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            padding: 0 15px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .row .form-group {
+            flex: 1;
+        }
+
+        /* Área de upload de fotos escondida, ativada por botão customizado */
+        input[type="file"] {
+            display: none;
+        }
+
+        .btn-photo {
+            background-color: #4B5563;
+            color: white;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+            cursor: pointer;
+            display: block;
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+
+        /* Miniaturas das fotos */
+        .preview-container {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .preview-img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+
+        .btn-submit {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .btn-submit:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .vistoria-item {
+            background: #F9FAFB;
+            border-left: 4px solid var(--primary);
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.9rem;
+        }
+
+        .vistoria-photos {
+            display: flex;
+            gap: 4px;
+            margin-top: 8px;
+        }
+
+        .vistoria-photos img {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        Vistoria Técnica de Terrenos
+    </header>
+
+    <main>
+        <div class="card">
+            <form id="vistoriaForm" onsubmit="salvarVistoria(event)">
+                
+                <h2>1. Identificação e Localização</h2>
+                <div class="form-group">
+                    <label for="codigo">Código da Vistoria</label>
+                    <input type="text" id="codigo" required placeholder="Ex: VIST-2026-001">
+                </div>
+                <div class="form-group">
+                    <label for="data">Data da Vistoria</label>
+                    <input type="date" id="data" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="localizacao">Coordenadas / GPS</label>
+                    <div class="input-btn-group">
+                        <input type="text" id="localizacao" required placeholder="Clique em 'Pegar GPS' no terreno">
+                        <button type="button" class="btn-utility" onclick="capturarGPS()">Pegar GPS</button>
+                    </div>
+                </div>
+
+                <h2>2. Características do Terreno</h2>
+                <div class="row">
+                    <div class="form-group">
+                        <label for="area">Área Total (m²)</label>
+                        <input type="number" id="area" placeholder="Ex: 360">
+                    </div>
+                    <div class="form-group">
+                        <label for="topografia">Topografia</label>
+                        <select id="topografia">
+                            <option value="Plano">Plano</option>
+                            <option value="Aclive">Aclive</option>
+                            <option value="Declive">Declive</option>
+                            <option value="Irregular">Irregular</option>
+                        </select>
+                    </div>
+                </div>
+
+                <h2>3. Evidências Fotográficas</h2>
+                <div class="form-group">
+                    <label class="btn-photo" for="fotoInput">📸 Tirar Foto do Terreno</label>
+                    <!-- O atributo 'capture="environment"' força o Android a abrir a câmera traseira diretamente -->
+                    <input type="file" id="fotoInput" accept="image/*" capture="environment" onchange="previewFotos(this)">
+                    <div id="previewContainer" class="preview-container"></div>
+                </div>
+
+                <h2>4. Notas Técnicas</h2>
+                <div class="form-group">
+                    <label for="observacoes">Observações de Campo</label>
+                    <textarea id="observacoes" placeholder="Solo, vegetação, benfeitorias..."></textarea>
+                </div>
+
+                <button type="submit" class="btn-submit">Gravar Vistoria no Celular</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>Vistorias Salvas no Aparelho</h2>
+            <div id="listaVistorias"></div>
+        </div>
+    </main>
+
+    <script>
+        // Array temporária para guardar as fotos em Base64 antes de salvar
+        let fotosBase64 = [];
+
+        document.getElementById('data').value = new Date().toISOString().substring(0, 10);
+
+        // --- FUNÇÃO DO GPS ---
+        function capturarGPS() {
+            const campoLocalizacao = document.getElementById('localizacao');
+            campoLocalizacao.placeholder = "Buscando satélites...";
+
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(
+                    (posicao) => {
+                        const lat = posicao.coords.latitude.toFixed(6);
+                        const lon = posicao.coords.longitude.toFixed(6);
+                        campoLocalizacao.value = `Lat: ${lat}, Long: ${lon}`;
+                    },
+                    (erro) => {
+                        alert("Erro ao obter GPS. Certifique-se de que a localização está ativa.");
+                        campoLocalizacao.placeholder = "Clique em 'Pegar GPS'";
+                    },
+                    { enableHighAccuracy: true, timeout: 10000 } // Força alta precisão
+                );
+            } else {
+                alert("Seu navegador não suporta geolocalização.");
+            }
+        }
+
+        // --- FUNÇÃO DA CÂMERA (PREVIEW) ---
+        function previewFotos(input) {
+            const container = document.getElementById('previewContainer');
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    // Adiciona a imagem na array temporária
+                    fotosBase64.push(e.target.result);
+                    
+                    // Renderiza a miniatura na tela
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.className = 'preview-img';
+                    container.appendChild(img);
+                }
+                
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        // --- SALVAR NO LOCALSTORAGE ---
+        function salvarVistoria(event) {
+            event.preventDefault();
+
+            const novaVistoria = {
+                codigo: document.getElementById('codigo').value,
+                data: document.getElementById('data').value,
+                localizacao: document.getElementById('localizacao').value,
+                area: document.getElementById('area').value,
+                topografia: document.getElementById('topografia').value,
+                observacoes: document.getElementById('observacoes').value,
+                fotos: fotosBase64 // Guarda a lista de imagens em texto/Base64
+            };
+
+            const lista = JSON.parse(localStorage.getItem('vistorias') || '[]');
+            lista.unshift(novaVistoria);
+            localStorage.setItem('vistorias', JSON.stringify(lista));
+
+            // Reseta formulário e estados
+            document.getElementById('vistoriaForm').reset();
+            document.getElementById('data').value = new Date().toISOString().substring(0, 10);
+            document.getElementById('previewContainer').innerHTML = '';
+            fotosBase64 = []; // Limpa fotos temporárias
+            
+            alert('Vistoria e mídias gravadas localmente!');
+            atualizarLista();
+        }
+
+        // --- RENDERIZAR LISTA ---
+        function atualizarLista() {
+            const lista = JSON.parse(localStorage.getItem('vistorias') || '[]');
+            const container = document.getElementById('listaVistorias');
+            
+            if (lista.length === 0) {
+                container.innerHTML = '<p style="font-size: 0.9rem; color: #6B7280;">Nenhuma vistoria registrada.</p>';
+                return;
+            }
+
+            container.innerHTML = lista.map(v => `
+                <div class="vistoria-item">
+                    <strong>Ref: ${v.codigo}</strong> - ${v.data}<br>
+                    <span style="color: #4B5563;">
+                        📍 ${v.localizacao}<br>
+                        Área: ${v.area ? v.area + ' m²' : 'N/I'} | Topo: ${v.topografia}
+                    </span>
+                    <div class="vistoria-photos">
+                        ${v.fotos ? v.fotos.map(f => `<img src="${f}">`).join('') : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js');
+            });
+        }
+
+        atualizarLista();
+    </script>
+</body>
+</html>
