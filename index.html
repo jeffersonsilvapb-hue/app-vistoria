@@ -98,6 +98,13 @@
             background-color: #FFF;
         }
 
+        input[readonly] {
+            background-color: #E5E7EB;
+            color: #374151;
+            font-weight: bold;
+            cursor: not-allowed;
+        }
+
         .input-btn-group {
             display: flex;
             gap: 8px;
@@ -263,26 +270,39 @@
                     </div>
                 </div>
 
-                <h2>2. Dimensões do Terreno (m)</h2>
+                <h2>2. Critérios de Dimensão e Área</h2>
+                <div class="form-group">
+                    <label for="atendeMinimo">As dimensões do terreno (m) atende as medidas mínimas?</label>
+                    <select id="atendeMinimo">
+                        <option value="Sim">Sim</option>
+                        <option value="Não">Não</option>
+                    </select>
+                </div>
+
                 <div class="row">
                     <div class="form-group">
-                        <label for="dimFrente">Frente</label>
-                        <input type="number" step="0.01" id="dimFrente" placeholder="0.00">
+                        <label for="dimFrente">Frente (m)</label>
+                        <input type="number" step="0.01" id="dimFrente" placeholder="0.00" oninput="calcularAreaAutomatica()">
                     </div>
                     <div class="form-group">
-                        <label for="dimFundo">Fundo</label>
-                        <input type="number" step="0.01" id="dimFundo" placeholder="0.00">
+                        <label for="dimFundo">Fundo (m)</label>
+                        <input type="number" step="0.01" id="dimFundo" placeholder="0.00" oninput="calcularAreaAutomatica()">
                     </div>
                 </div>
                 <div class="row">
                     <div class="form-group">
-                        <label for="dimLatEsq">Lat. Esquerda</label>
-                        <input type="number" step="0.01" id="dimLatEsq" placeholder="0.00">
+                        <label for="dimLatEsq">Lat. Esquerda (m)</label>
+                        <input type="number" step="0.01" id="dimLatEsq" placeholder="0.00" oninput="calcularAreaAutomatica()">
                     </div>
                     <div class="form-group">
-                        <label for="dimLatDir">Lat. Direita</label>
-                        <input type="number" step="0.01" id="dimLatDir" placeholder="0.00">
+                        <label for="dimLatDir">Lat. Direita (m)</label>
+                        <input type="number" step="0.01" id="dimLatDir" placeholder="0.00" oninput="calcularAreaAutomatica()">
                     </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="areaCalculada">Área Calculada Automática (m²)</label>
+                    <input type="text" id="areaCalculada" readonly placeholder="Preencha as dimensões acima">
                 </div>
 
                 <h2>3. Acesso e Infraestrutura Urbana</h2>
@@ -438,6 +458,27 @@
             }
         }
 
+        // --- CÁLCULO DE ÁREA AUTOMÁTICO ---
+        function calcularAreaAutomatica() {
+            const frente = parseFloat(document.getElementById('dimFrente').value) || 0;
+            const fundo = parseFloat(document.getElementById('dimFundo').value) || 0;
+            const latEsq = parseFloat(document.getElementById('dimLatEsq').value) || 0;
+            const latDir = parseFloat(document.getElementById('dimLatDir').value) || 0;
+
+            const campoArea = document.getElementById('areaCalculada');
+
+            // Só calcula se todos os 4 lados forem informados
+            if (frente > 0 && fundo > 0 && latEsq > 0 && latDir > 0) {
+                const mediaLargura = (frente + fundo) / 2;
+                const mediaComprimento = (latEsq + latDir) / 2;
+                const area = mediaLargura * mediaComprimento;
+                
+                campoArea.value = area.toFixed(2);
+            } else {
+                campoArea.value = "";
+            }
+        }
+
         // --- CAPTURA DE GPS ---
         function capturarGPS() {
             const campoLocalizacao = document.getElementById('localizacao');
@@ -451,7 +492,7 @@
                         campoLocalizacao.value = `Lat: ${lat}, Long: ${lon}`;
                     },
                     (erro) => {
-                        alert("Erro ao obter GPS. Certifique-se de que a localização está ativa.");
+                        alert("Erro ao obter GPS. Certifique-se de que a localização está activa.");
                         campoLocalizacao.placeholder = "Clique em 'Pegar GPS'";
                     },
                     { enableHighAccuracy: true, timeout: 10000 }
@@ -505,13 +546,11 @@
         function salvarVistoria(event) {
             event.preventDefault();
 
-            // Pega valor customizado do solo se "Outro" for escolhido
             let soloFinal = document.getElementById('categoriaSolo').value;
             if (soloFinal === "Outro") {
                 soloFinal = "Outro: " + document.getElementById('outroSolo').value;
             }
 
-            // Pega valor customizado da concessionária se "Outro" for escolhido
             let concFinal = document.getElementById('concessionaria').value;
             if (concFinal === "Outro") {
                 concFinal = "Outro: " + document.getElementById('outroConcessionaria').value;
@@ -526,10 +565,12 @@
                 beneficiario: document.getElementById('beneficiario').value,
                 contato: document.getElementById('contato').value,
                 localizacao: document.getElementById('localizacao').value,
+                atendeMinimo: document.getElementById('atendeMinimo').value,
                 dimFrente: document.getElementById('dimFrente').value,
                 dimFundo: document.getElementById('dimFundo').value,
                 dimLatEsq: document.getElementById('dimLatEsq').value,
                 dimLatDir: document.getElementById('dimLatDir').value,
+                areaCalculada: document.getElementById('areaCalculada').value || "0.00",
                 acesso: document.getElementById('acesso').value,
                 meioFio: document.getElementById('meioFio').value,
                 marcoDivisorio: document.getElementById('marcoDivisorio').value,
@@ -563,7 +604,6 @@
                 console.error(error);
             }
 
-            // Limpeza total do formulário
             document.getElementById('vistoriaForm').reset();
             document.getElementById('data').value = new Date().toISOString().substring(0, 10);
             document.getElementById('previewContainer').innerHTML = '';
@@ -583,7 +623,7 @@
 
             const colunas = [
                 "Codigo", "Data", "Municipio", "Entidade Requerente", "Nome Beneficiario", "Contato", 
-                "Coordenadas_GPS", "Frente(m)", "Fundo(m)", "Lat_Esquerda(m)", "Lat_Direita(m)", 
+                "Coordenadas_GPS", "Atende Medidas Minimas", "Frente(m)", "Fundo(m)", "Lat_Esquerda(m)", "Lat_Direita(m)", "Area_Calculada(m2)",
                 "Acesso", "Possui Meio-Fio", "Possui Marco Divisorio", "Nivel em Relacao a Rua", 
                 "Agua no Terreno", "Agua no Entorno", "Concessionaria", "Solucao Esgoto Proximo", 
                 "Energia no Terreno", "Energia no Entorno", "Categoria do Solo", "Nivel Interferencia", "Observacoes"
@@ -591,7 +631,7 @@
 
             const dados = [
                 `"${v.codigo}"`, `"${v.data}"`, `"${v.municipio}"`, `"${v.requerente || 'N/I'}"`, `"${v.beneficiario || 'N/I'}"`, `"${v.contato || 'N/I'}"`,
-                `"${v.localizacao}"`, `"${v.dimFrente || '0'}"`, `"${v.dimFundo || '0'}"`, `"${v.dimLatEsq || '0'}"`, `"${v.dimLatDir || '0'}"`,
+                `"${v.localizacao}"`, `"${v.atendeMinimo}"`, `"${v.dimFrente || '0'}"`, `"${v.dimFundo || '0'}"`, `"${v.dimLatEsq || '0'}"`, `"${v.dimLatDir || '0'}"`, `"${v.areaCalculada}"`,
                 `"${v.acesso}"`, `"${v.meioFio}"`, `"${v.marcoDivisorio}"`, `"${v.nivelRua}"`,
                 `"${v.aguaTerreno}"`, `"${v.aguaEntorno}"`, `"${v.concessionaria}"`, `"${v.esgotoProximo || 'N/I'}"`,
                 `"${v.energiaTerreno}"`, `"${v.energiaEntorno}"`, `"${v.categoriaSolo}"`, `"${v.interferencia}"`,
@@ -631,8 +671,8 @@
                     <strong>Ref: ${v.codigo || 'S/C'}</strong> - ${v.data || ''} | <strong>Mun:</strong> ${v.municipio || 'N/I'}<br>
                     <span style="color: #4B5563; font-size: 0.85rem;">
                         👤 Beneficiário: ${v.beneficiario || 'N/I'}<br>
-                        📍 ${v.localizacao || 'Sem GPS'}<br>
-                        📐 Dimensões: F:${v.dimFrente || 0}m x Fd:${v.dimFundo || 0}m | Solo: ${v.categoriaSolo}
+                        📐 Atende Mínimo? ${v.atendeMinimo} | <strong>Área: ${v.areaCalculada || 0} m²</strong><br>
+                        📍 ${v.localizacao || 'Sem GPS'}
                     </span>
                     <div class="vistoria-photos">
                         ${v.fotos && Array.isArray(v.fotos) ? v.fotos.map(f => `<img src="${f}">`).join('') : ''}
