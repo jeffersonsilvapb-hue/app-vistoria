@@ -65,7 +65,7 @@
             color: var(--primary);
             border-bottom: 2px solid #E5E7EB;
             padding-bottom: 6px;
-            margin-top: 10px;
+            margin-top: 15px;
         }
 
         .form-group {
@@ -121,6 +121,11 @@
 
         .row .form-group {
             flex: 1;
+        }
+
+        .hidden-field {
+            display: none;
+            margin-top: 8px;
         }
 
         input[type="file"] {
@@ -218,14 +223,36 @@
         <div class="card">
             <form id="vistoriaForm" onsubmit="salvarVistoria(event)">
                 
-                <h2>1. Identificação e Localização</h2>
-                <div class="form-group">
-                    <label for="codigo">Código da Vistoria</label>
-                    <input type="text" id="codigo" required placeholder="Ex: VIST-001">
+                <h2>1. Identificação Geral</h2>
+                <div class="row">
+                    <div class="form-group">
+                        <label for="codigo">Cód. Vistoria</label>
+                        <input type="text" id="codigo" required placeholder="Ex: VIST-001">
+                    </div>
+                    <div class="form-group">
+                        <label for="data">Data</label>
+                        <input type="date" id="data" required>
+                    </div>
                 </div>
+
                 <div class="form-group">
-                    <label for="data">Data da Vistoria</label>
-                    <input type="date" id="data" required>
+                    <label for="municipio">Município</label>
+                    <input type="text" id="municipio" required placeholder="Digite o município">
+                </div>
+
+                <div class="form-group">
+                    <label for="requerente">Entidade Requerente</label>
+                    <input type="text" id="requerente" placeholder="Órgão ou empresa solicitante">
+                </div>
+
+                <div class="form-group">
+                    <label for="beneficiario">Nome do Beneficiário</label>
+                    <input type="text" id="beneficiario" placeholder="Nome completo">
+                </div>
+
+                <div class="form-group">
+                    <label for="contato">Nº para Contato</label>
+                    <input type="text" id="contato" placeholder="(00) 00000-0000">
                 </div>
                 
                 <div class="form-group">
@@ -236,34 +263,152 @@
                     </div>
                 </div>
 
-                <h2>2. Características do Terreno</h2>
+                <h2>2. Dimensões do Terreno (m)</h2>
                 <div class="row">
                     <div class="form-group">
-                        <label for="area">Área Total (m²)</label>
-                        <input type="number" id="area" placeholder="Ex: 360">
+                        <label for="dimFrente">Frente</label>
+                        <input type="number" step="0.01" id="dimFrente" placeholder="0.00">
                     </div>
                     <div class="form-group">
-                        <label for="topografia">Topografia</label>
-                        <select id="topografia">
-                            <option value="Plano">Plano</option>
-                            <option value="Aclive">Aclive</option>
-                            <option value="Declive">Declive</option>
-                            <option value="Irregular">Irregular</option>
+                        <label for="dimFundo">Fundo</label>
+                        <input type="number" step="0.01" id="dimFundo" placeholder="0.00">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="form-group">
+                        <label for="dimLatEsq">Lat. Esquerda</label>
+                        <input type="number" step="0.01" id="dimLatEsq" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="dimLatDir">Lat. Direita</label>
+                        <input type="number" step="0.01" id="dimLatDir" placeholder="0.00">
+                    </div>
+                </div>
+
+                <h2>3. Acesso e Infraestrutura Urbana</h2>
+                <div class="form-group">
+                    <label for="acesso">Acesso ao Terreno</label>
+                    <select id="acesso">
+                        <option value="Asfaltado">Asfaltado</option>
+                        <option value="Calçado">Calçado</option>
+                        <option value="Terreno natural">Terreno natural</option>
+                    </select>
+                </div>
+
+                <div class="row">
+                    <div class="form-group">
+                        <label for="meioFio">Possui meio-fio?</label>
+                        <select id="meioFio">
+                            <option value="Sim">Sim</option>
+                            <option value="Não">Não</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="marcoDivisorio">Possui marco divisório?</label>
+                        <select id="marcoDivisorio">
+                            <option value="Sim">Sim</option>
+                            <option value="Não">Não</option>
                         </select>
                     </div>
                 </div>
 
-                <h2>3. Evidências Fotográficas</h2>
+                <div class="form-group">
+                    <label for="nivelRua">Nível do terreno em relação à rua</label>
+                    <select id="nivelRua">
+                        <option value="No nível">No nível</option>
+                        <option value="Acima">Acima</option>
+                        <option value="Abaixo">Abaixo</option>
+                        <option value="Sem definição">Sem definição</option>
+                    </select>
+                </div>
+
+                <!-- Abastecimento de Água -->
+                <div class="row">
+                    <div class="form-group">
+                        <label for="aguaTerreno">Água no terreno?</label>
+                        <select id="aguaTerreno">
+                            <option value="Sim">Sim</option>
+                            <option value="Não">Não</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="aguaEntorno">Água no entorno?</label>
+                        <select id="aguaEntorno">
+                            <option value="Sim">Sim</option>
+                            <option value="Não">Não</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="concessionaria">Qual é a concessionária de água?</label>
+                    <select id="concessionaria" onchange="verificarOutro(this, 'outroConcessionariaDiv')">
+                        <option value="Cagepa">Cagepa</option>
+                        <option value="Rede Própria">Rede Própria</option>
+                        <option value="Outro">Outro (Especificar)</option>
+                    </select>
+                    <div id="outroConcessionariaDiv" class="hidden-field">
+                        <input type="text" id="outroConcessionaria" placeholder="Especifique a concessionária">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="esgotoProximo">Solução de esgotamento sanitário mais utilizada próximo:</label>
+                    <input type="text" id="esgotoProximo" placeholder="Ex: Fossa séptica, rede pública, etc.">
+                </div>
+
+                <!-- Rede Elétrica -->
+                <div class="form-group">
+                    <label for="energiaTerreno">Existe rede elétrica no terreno?</label>
+                    <select id="energiaTerreno">
+                        <option value="Sim">Sim</option>
+                        <option value="Não">Não</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="energiaEntorno">Existe rede elétrica no entorno do terreno:</label>
+                    <select id="energiaEntorno">
+                        <option value="Passa na rua">Passa na rua</option>
+                        <option value="a 50m">a 50m</option>
+                        <option value="Entre 50m a 100m">Entre 50m a 100m</option>
+                        <option value="Entre 100m a 200m">Entre 100m a 200m</option>
+                    </select>
+                </div>
+
+                <h2>4. Características Físicas do Solo</h2>
+                <div class="form-group">
+                    <label for="categoriaSolo">Categoria do Solo</label>
+                    <select id="categoriaSolo" onchange="verificarOutro(this, 'outroSoloDiv')">
+                        <option value="Arenoso">Arenoso</option>
+                        <option value="Argilo-arenoso">Argilo-arenoso</option>
+                        <option value="Argiloso">Argiloso</option>
+                        <option value="Outro">Outro (Especificar)</option>
+                    </select>
+                    <div id="outroSoloDiv" class="hidden-field">
+                        <input type="text" id="outroSolo" placeholder="Especifique o tipo de solo">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="interferencia">Nível de interferência</label>
+                    <select id="interferencia">
+                        <option value="Nenhuma interferência">Nenhuma interferência</option>
+                        <option value="Pouca interferência">Pouca interferência</option>
+                        <option value="Muita interferência">Muita interferência</option>
+                    </select>
+                </div>
+
+                <h2>5. Evidências Fotográficas e Notas</h2>
                 <div class="form-group">
                     <label class="btn-photo" for="fotoInput">📸 Tirar Foto do Terreno</label>
                     <input type="file" id="fotoInput" accept="image/*" capture="environment" onchange="processarFoto(this)">
                     <div id="previewContainer" class="preview-container"></div>
                 </div>
 
-                <h2>4. Notas Técnicas</h2>
                 <div class="form-group">
-                    <label for="observacoes">Observações de Campo</label>
-                    <textarea id="observacoes" placeholder="Solo, vegetação, benfeitorias..."></textarea>
+                    <label for="observacoes">Observações Adicionais de Campo</label>
+                    <textarea id="observacoes" placeholder="Outras anotações importantes encontradas in loco..."></textarea>
                 </div>
 
                 <button type="submit" class="btn-submit">Gravar Vistoria no Celular</button>
@@ -280,10 +425,20 @@
     <script>
         let fotosBase64 = [];
 
-        // Inicializa data de hoje
+        // Inicializa data padrão
         document.getElementById('data').value = new Date().toISOString().substring(0, 10);
 
-        // --- GPS ---
+        // --- EXIBIR CAMPO "OUTRO" SE SELECIONADO ---
+        function verificarOutro(selectElement, divId) {
+            const div = document.getElementById(divId);
+            if (selectElement.value === "Outro") {
+                div.style.display = "block";
+            } else {
+                div.style.display = "none";
+            }
+        }
+
+        // --- CAPTURA DE GPS ---
         function capturarGPS() {
             const campoLocalizacao = document.getElementById('localizacao');
             campoLocalizacao.placeholder = "Buscando satélites...";
@@ -317,9 +472,8 @@
                     imgElement.src = e.target.result;
                     
                     imgElement.onload = function() {
-                        // Cria um canvas para redimensionar a foto tirada pelo celular
                         const canvas = document.createElement('canvas');
-                        const MAX_WIDTH = 800; // Reduz largura para 800px max (perfeito para relatórios)
+                        const MAX_WIDTH = 800; 
                         let width = imgElement.width;
                         let height = imgElement.height;
 
@@ -331,13 +485,11 @@
                         canvas.width = width;
                         canvas.height = height;
                         
-                        const ctx = canvas.getContext('2array') || canvas.getContext('2d');
+                        const ctx = canvas.getContext('2d');
                         ctx.drawImage(imgElement, 0, 0, width, height);
                         
-                        // Transforma em JPEG leve (qualidade 70%)
                         const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
                         
-                        // Salva e exibe miniatura
                         fotosBase64.push(dataUrl);
                         const thumb = document.createElement('img');
                         thumb.src = dataUrl;
@@ -349,22 +501,51 @@
             }
         }
 
-        // --- SALVAR MÚLTIPLAS VISTORIAS ---
+        // --- SALVAR VISTORIA COMPLETA ---
         function salvarVistoria(event) {
             event.preventDefault();
 
+            // Pega valor customizado do solo se "Outro" for escolhido
+            let soloFinal = document.getElementById('categoriaSolo').value;
+            if (soloFinal === "Outro") {
+                soloFinal = "Outro: " + document.getElementById('outroSolo').value;
+            }
+
+            // Pega valor customizado da concessionária se "Outro" for escolhido
+            let concFinal = document.getElementById('concessionaria').value;
+            if (concFinal === "Outro") {
+                concFinal = "Outro: " + document.getElementById('outroConcessionaria').value;
+            }
+
             const novaVistoria = {
-                id: Date.now(), // Gera um ID único para cada item
+                id: Date.now(),
                 codigo: document.getElementById('codigo').value,
                 data: document.getElementById('data').value,
+                municipio: document.getElementById('municipio').value,
+                requerente: document.getElementById('requerente').value,
+                beneficiario: document.getElementById('beneficiario').value,
+                contato: document.getElementById('contato').value,
                 localizacao: document.getElementById('localizacao').value,
-                area: document.getElementById('area').value,
-                topografia: document.getElementById('topografia').value,
+                dimFrente: document.getElementById('dimFrente').value,
+                dimFundo: document.getElementById('dimFundo').value,
+                dimLatEsq: document.getElementById('dimLatEsq').value,
+                dimLatDir: document.getElementById('dimLatDir').value,
+                acesso: document.getElementById('acesso').value,
+                meioFio: document.getElementById('meioFio').value,
+                marcoDivisorio: document.getElementById('marcoDivisorio').value,
+                nivelRua: document.getElementById('nivelRua').value,
+                aguaTerreno: document.getElementById('aguaTerreno').value,
+                aguaEntorno: document.getElementById('aguaEntorno').value,
+                concessionaria: concFinal,
+                esgotoProximo: document.getElementById('esgotoProximo').value,
+                energiaTerreno: document.getElementById('energiaTerreno').value,
+                energiaEntorno: document.getElementById('energiaEntorno').value,
+                categoriaSolo: soloFinal,
+                interferencia: document.getElementById('interferencia').value,
                 observacoes: document.getElementById('observacoes').value,
-                fotos: [...fotosBase64] // Garante cópia real da array de fotos
+                fotos: [...fotosBase64]
             };
 
-            // Puxa histórico ou cria novo
             let lista = [];
             try {
                 lista = JSON.parse(localStorage.getItem('vistorias') || '[]');
@@ -372,27 +553,62 @@
                 lista = [];
             }
             
-            lista.unshift(novaVistoria); // Coloca a mais recente no topo
+            lista.unshift(novaVistoria);
             
             try {
                 localStorage.setItem('vistorias', JSON.stringify(lista));
                 alert('Vistoria gravada com sucesso!');
             } catch (error) {
-                alert('Erro de espaço: Fotos muito pesadas ou vistorias demais acumuladas. Limpe o histórico antigo.');
+                alert('Erro de espaço no navegador. Exclua relatórios antigos.');
                 console.error(error);
             }
 
-            // LIMPEZA COMPLETA DO FORMULÁRIO PARA A PRÓXIMA
+            // Limpeza total do formulário
             document.getElementById('vistoriaForm').reset();
             document.getElementById('data').value = new Date().toISOString().substring(0, 10);
             document.getElementById('previewContainer').innerHTML = '';
-            document.getElementById('fotoInput').value = ""; // Limpa a memória física da câmera
+            document.getElementById('outroSoloDiv').style.display = "none";
+            document.getElementById('outroConcessionariaDiv').style.display = "none";
+            document.getElementById('fotoInput').value = "";
             fotosBase64 = []; 
             
             atualizarLista();
         }
 
-        // --- LISTAR VISTORIAS ---
+        // --- EXPORTAR PARA EXCEL (CSV) COM TODOS OS CAMPOS ---
+        function exportarCSV(id) {
+            const lista = JSON.parse(localStorage.getItem('vistorias') || '[]');
+            const v = lista.find(item => item.id === id);
+            if (!v) return;
+
+            const colunas = [
+                "Codigo", "Data", "Municipio", "Entidade Requerente", "Nome Beneficiario", "Contato", 
+                "Coordenadas_GPS", "Frente(m)", "Fundo(m)", "Lat_Esquerda(m)", "Lat_Direita(m)", 
+                "Acesso", "Possui Meio-Fio", "Possui Marco Divisorio", "Nivel em Relacao a Rua", 
+                "Agua no Terreno", "Agua no Entorno", "Concessionaria", "Solucao Esgoto Proximo", 
+                "Energia no Terreno", "Energia no Entorno", "Categoria do Solo", "Nivel Interferencia", "Observacoes"
+            ];
+
+            const dados = [
+                `"${v.codigo}"`, `"${v.data}"`, `"${v.municipio}"`, `"${v.requerente || 'N/I'}"`, `"${v.beneficiario || 'N/I'}"`, `"${v.contato || 'N/I'}"`,
+                `"${v.localizacao}"`, `"${v.dimFrente || '0'}"`, `"${v.dimFundo || '0'}"`, `"${v.dimLatEsq || '0'}"`, `"${v.dimLatDir || '0'}"`,
+                `"${v.acesso}"`, `"${v.meioFio}"`, `"${v.marcoDivisorio}"`, `"${v.nivelRua}"`,
+                `"${v.aguaTerreno}"`, `"${v.aguaEntorno}"`, `"${v.concessionaria}"`, `"${v.esgotoProximo || 'N/I'}"`,
+                `"${v.energiaTerreno}"`, `"${v.energiaEntorno}"`, `"${v.categoriaSolo}"`, `"${v.interferencia}"`,
+                `"${v.observacoes ? v.observacoes.replace(/"/g, '""') : ''}"`
+            ];
+
+            const conteudoCSV = "data:text/csv;charset=utf-8,\uFEFF" + colunas.join(";") + "\n" + dados.join(";");
+            const encodedUri = encodeURI(conteudoCSV);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Vistoria_${v.codigo || 'Sem_Nome'}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // --- RENDERIZAR HISTÓRICO NA TELA ---
         function atualizarLista() {
             let lista = [];
             try {
@@ -408,22 +624,26 @@
                 return;
             }
 
+            const btnStyle = "background-color: #2563EB; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; margin-top: 8px; display: inline-block;";
+
             container.innerHTML = lista.map(v => `
-                <div class="vistoria-item">
-                    <strong>Ref: ${v.codigo || 'Sem código'}</strong> - ${v.data || ''}<br>
-                    <span style="color: #4B5563;">
+                <div class="vistoria-item" style="padding-bottom: 12px;">
+                    <strong>Ref: ${v.codigo || 'S/C'}</strong> - ${v.data || ''} | <strong>Mun:</strong> ${v.municipio || 'N/I'}<br>
+                    <span style="color: #4B5563; font-size: 0.85rem;">
+                        👤 Beneficiário: ${v.beneficiario || 'N/I'}<br>
                         📍 ${v.localizacao || 'Sem GPS'}<br>
-                        Área: ${v.area ? v.area + ' m²' : 'N/I'} | Topo: ${v.topografia || 'N/I'}
+                        📐 Dimensões: F:${v.dimFrente || 0}m x Fd:${v.dimFundo || 0}m | Solo: ${v.categoriaSolo}
                     </span>
                     <div class="vistoria-photos">
                         ${v.fotos && Array.isArray(v.fotos) ? v.fotos.map(f => `<img src="${f}">`).join('') : ''}
                     </div>
+                    <button style="${btnStyle}" onclick="exportarCSV(${v.id})">📥 Baixar Dados (Excel)</button>
                 </div>
             `).join('');
         }
 
         function limparTudo() {
-            if(confirm("Tem certeza que deseja apagar TODAS as vistorias do aparelho?")) {
+            if(confirm("Deseja realmente apagar TODAS as vistorias salvas neste celular?")) {
                 localStorage.removeItem('vistorias');
                 atualizarLista();
             }
