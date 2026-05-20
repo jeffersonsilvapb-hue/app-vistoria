@@ -98,6 +98,11 @@
             background-color: #FFF;
         }
 
+        textarea {
+            height: 80px;
+            resize: vertical;
+        }
+
         input[readonly] {
             background-color: #E5E7EB;
             color: #374151;
@@ -263,10 +268,10 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="localizacao">Coordenadas / GPS</label>
+                    <label for="localizacao">Coordenadas (GMS / UTM)</label>
                     <div class="input-btn-group">
-                        <input type="text" id="localizacao" required placeholder="Clique em 'Pegar GPS'">
-                        <button type="button" class="btn-utility" onclick="capturarGPS()">Pegar GPS</button>
+                        <textarea id="localizacao" required readonly placeholder="Clique em 'Pegar GPS' para capturar"></textarea>
+                        <button type="button" class="btn-utility" style="align-self: center;" onclick="capturarGPS()">Pegar GPS</button>
                     </div>
                 </div>
 
@@ -342,7 +347,6 @@
                     </select>
                 </div>
 
-                <!-- Abastecimento de Água -->
                 <div class="row">
                     <div class="form-group">
                         <label for="aguaTerreno">Água no terreno?</label>
@@ -377,7 +381,6 @@
                     <input type="text" id="esgotoProximo" placeholder="Ex: Fossa séptica, rede pública, etc.">
                 </div>
 
-                <!-- Rede Elétrica -->
                 <div class="form-group">
                     <label for="energiaTerreno">Existe rede elétrica no terreno?</label>
                     <select id="energiaTerreno">
@@ -445,10 +448,8 @@
     <script>
         let fotosBase64 = [];
 
-        // Inicializa data padrão
         document.getElementById('data').value = new Date().toISOString().substring(0, 10);
 
-        // --- EXIBIR CAMPO "OUTRO" SE SELECIONADO ---
         function verificarOutro(selectElement, divId) {
             const div = document.getElementById(divId);
             if (selectElement.value === "Outro") {
@@ -458,28 +459,74 @@
             }
         }
 
-        // --- CÁLCULO DE ÁREA AUTOMÁTICO ---
         function calcularAreaAutomatica() {
             const frente = parseFloat(document.getElementById('dimFrente').value) || 0;
             const fundo = parseFloat(document.getElementById('dimFundo').value) || 0;
             const latEsq = parseFloat(document.getElementById('dimLatEsq').value) || 0;
             const latDir = parseFloat(document.getElementById('dimLatDir').value) || 0;
-
             const campoArea = document.getElementById('areaCalculada');
 
-            // Só calcula se todos os 4 lados forem informados
             if (frente > 0 && fundo > 0 && latEsq > 0 && latDir > 0) {
                 const mediaLargura = (frente + fundo) / 2;
                 const mediaComprimento = (latEsq + latDir) / 2;
-                const area = mediaLargura * mediaComprimento;
-                
-                campoArea.value = area.toFixed(2);
+                campoArea.value = (mediaLargura * mediaComprimento).toFixed(2);
             } else {
                 campoArea.value = "";
             }
         }
 
-        // --- CAPTURA DE GPS ---
+        // --- CONVERSORES DE COORDENADAS (WGS84 -> GMS & UTM) ---
+        function converterParaGMS(dec, paraLatitude) {
+            const direcao = paraLatitude ? (dec >= 0 ? "N" : "S") : (dec >= 0 ? "E" : "O");
+            const valAbs = Math.abs(dec);
+            const graus = Math.floor(valAbs);
+            const minFrac = (valAbs - graus) * 60;
+            const minutos = Math.floor(minFrac);
+            const segundos = ((minFrac - minutos) * 60).toFixed(2);
+            return `${graus}° ${minutos}' ${segundos}" ${direcao}`;
+        }
+
+        function converterParaUTM(lat, lon) {
+            // Elipsoide WGS84
+            const a = 6378137.0;
+            const f = 1 / 298.257223563;
+            const b = a * (1 - f);
+            const eSq = (a*a - b*b) / (a*a);
+            const k0 = 0.9996;
+
+            let lonRad = lon * Math.PI / 180;
+            let latRad = lat * Math.PI / 180;
+
+            let fuso = Math.floor((lon + 180) / 6) + 1;
+            if (lat >= 56.0 && lat < 64.0 && lon >= 3.0 && lon < 12.0) fuso = 32;
+
+            let lonOrigin = (fuso - 1) * 6 - 180 + 3;
+            let lonOriginRad = lonOrigin * Math.PI / 180;
+
+            const bandaUtm = "CDEFGHJKLMNPQRSTUVWXX"[Math.floor((lat + 80) / 8)];
+
+            const ePrimeSq = (eSq) / (1 - eSq);
+            const N = a / Math.sqrt(1 - eSq * Math.sin(latRad) * Math.sin(latRad));
+            const T = Math.tan(latRad) * Math.tan(latRad);
+            const C = ePrimeSq * Math.cos(latRad) * Math.cos(latRad);
+            const A = Math.cos(latRad) * (lonRad - lonOriginRad);
+
+            const M = a * ((1 - eSq/4 - 3*eSq*eSq/64 - 5*eSq*eSq*eSq/256) * latRad
+                        - (3*eSq/8 + 3*eSq*eSq/32 + 45*eSq*eSq*eSq/1024) * Math.sin(2*latRad)
+                        + (15*eSq*eSq/256 + 45*eSq*eSq*eSq/1024) * Math.sin(4*latRad)
+                        - (35*eSq*eSq*eSq/3072) * Math.sin(6*latRad));
+
+            let UTMEasting = k0 * N * (A + (1 - T + C) * A*A*A / 6
+                            + (5 - 18 * T + T*T + 72 * C - 58 * ePrimeSq) * A*A*A*A*A / 120) + 500000.0;
+
+            let UTMNorthing = k0 * (M + N * Math.tan(latRad) * (A*A / 2 + (5 - T + 9 * C + 4 * C*C) * A*A*A*A / 24
+                            + (61 - 58 * T + T*T + 600 * C - 330 * ePrimeSq) * A*A*A*A*A*A / 720));
+
+            if (lat < 0) UTMNorthing += 10000000.0; // Ajuste para hemisfério Sul
+
+            return `${fuso}${bandaUtm} ${UTMEasting.toFixed(0)}E ${UTMNorthing.toFixed(0)}N`;
+        }
+
         function capturarGPS() {
             const campoLocalizacao = document.getElementById('localizacao');
             campoLocalizacao.placeholder = "Buscando satélites...";
@@ -487,12 +534,17 @@
             if ("geolocation" in navigator) {
                 navigator.geolocation.getCurrentPosition(
                     (posicao) => {
-                        const lat = posicao.coords.latitude.toFixed(6);
-                        const lon = posicao.coords.longitude.toFixed(6);
-                        campoLocalizacao.value = `Lat: ${lat}, Long: ${lon}`;
+                        const lat = posicao.coords.latitude;
+                        const lon = posicao.coords.longitude;
+
+                        const gmsLat = converterParaGMS(lat, true);
+                        const gmsLon = converterParaGMS(lon, false);
+                        const utmString = converterParaUTM(lat, lon);
+
+                        campoLocalizacao.value = `GMS: ${gmsLat} | ${gmsLon}\nUTM: ${utmString}`;
                     },
                     (erro) => {
-                        alert("Erro ao obter GPS. Certifique-se de que a localização está activa.");
+                        alert("Erro ao obter GPS. Certifique-se de que a localização está ativa.");
                         campoLocalizacao.placeholder = "Clique em 'Pegar GPS'";
                     },
                     { enableHighAccuracy: true, timeout: 10000 }
@@ -502,16 +554,13 @@
             }
         }
 
-        // --- COMPRESSOR DE IMAGEM DA CÂMERA ---
         function processarFoto(input) {
             const container = document.getElementById('previewContainer');
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
-                
                 reader.onload = function(e) {
                     const imgElement = new Image();
                     imgElement.src = e.target.result;
-                    
                     imgElement.onload = function() {
                         const canvas = document.createElement('canvas');
                         const MAX_WIDTH = 800; 
@@ -522,13 +571,11 @@
                             height *= MAX_WIDTH / width;
                             width = MAX_WIDTH;
                         }
-                        
                         canvas.width = width;
                         canvas.height = height;
                         
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(imgElement, 0, 0, width, height);
-                        
                         const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
                         
                         fotosBase64.push(dataUrl);
@@ -542,19 +589,14 @@
             }
         }
 
-        // --- SALVAR VISTORIA COMPLETA ---
         function salvarVistoria(event) {
             event.preventDefault();
 
             let soloFinal = document.getElementById('categoriaSolo').value;
-            if (soloFinal === "Outro") {
-                soloFinal = "Outro: " + document.getElementById('outroSolo').value;
-            }
+            if (soloFinal === "Outro") soloFinal = "Outro: " + document.getElementById('outroSolo').value;
 
             let concFinal = document.getElementById('concessionaria').value;
-            if (concFinal === "Outro") {
-                concFinal = "Outro: " + document.getElementById('outroConcessionaria').value;
-            }
+            if (concFinal === "Outro") concFinal = "Outro: " + document.getElementById('outroConcessionaria').value;
 
             const novaVistoria = {
                 id: Date.now(),
@@ -588,12 +630,7 @@
             };
 
             let lista = [];
-            try {
-                lista = JSON.parse(localStorage.getItem('vistorias') || '[]');
-            } catch(e) {
-                lista = [];
-            }
-            
+            try { lista = JSON.parse(localStorage.getItem('vistorias') || '[]'); } catch(e) { lista = []; }
             lista.unshift(novaVistoria);
             
             try {
@@ -601,7 +638,6 @@
                 alert('Vistoria gravada com sucesso!');
             } catch (error) {
                 alert('Erro de espaço no navegador. Exclua relatórios antigos.');
-                console.error(error);
             }
 
             document.getElementById('vistoriaForm').reset();
@@ -611,11 +647,9 @@
             document.getElementById('outroConcessionariaDiv').style.display = "none";
             document.getElementById('fotoInput').value = "";
             fotosBase64 = []; 
-            
             atualizarLista();
         }
 
-        // --- EXPORTAR PARA EXCEL (CSV) COM TODOS OS CAMPOS ---
         function exportarCSV(id) {
             const lista = JSON.parse(localStorage.getItem('vistorias') || '[]');
             const v = lista.find(item => item.id === id);
@@ -631,7 +665,7 @@
 
             const dados = [
                 `"${v.codigo}"`, `"${v.data}"`, `"${v.municipio}"`, `"${v.requerente || 'N/I'}"`, `"${v.beneficiario || 'N/I'}"`, `"${v.contato || 'N/I'}"`,
-                `"${v.localizacao}"`, `"${v.atendeMinimo}"`, `"${v.dimFrente || '0'}"`, `"${v.dimFundo || '0'}"`, `"${v.dimLatEsq || '0'}"`, `"${v.dimLatDir || '0'}"`, `"${v.areaCalculada}"`,
+                `"${v.localizacao.replace(/\n/g, ' | ')}"`, `"${v.atendeMinimo}"`, `"${v.dimFrente || '0'}"`, `"${v.dimFundo || '0'}"`, `"${v.dimLatEsq || '0'}"`, `` + `"${v.dimLatDir || '0'}"`, `"${v.areaCalculada}"`,
                 `"${v.acesso}"`, `"${v.meioFio}"`, `"${v.marcoDivisorio}"`, `"${v.nivelRua}"`,
                 `"${v.aguaTerreno}"`, `"${v.aguaEntorno}"`, `"${v.concessionaria}"`, `"${v.esgotoProximo || 'N/I'}"`,
                 `"${v.energiaTerreno}"`, `"${v.energiaEntorno}"`, `"${v.categoriaSolo}"`, `"${v.interferencia}"`,
@@ -648,19 +682,13 @@
             document.body.removeChild(link);
         }
 
-        // --- RENDERIZAR HISTÓRICO NA TELA ---
         function atualizarLista() {
             let lista = [];
-            try {
-                lista = JSON.parse(localStorage.getItem('vistorias') || '[]');
-            } catch(e) {
-                lista = [];
-            }
-            
+            try { lista = JSON.parse(localStorage.getItem('vistorias') || '[]'); } catch(e) { lista = []; }
             const container = document.getElementById('listaVistorias');
             
             if (lista.length === 0) {
-                container.innerHTML = '<p style="font-size: 0.9rem; color: #6B7280;">Nenhuma vistoria registrada.</p>';
+                container.innerHTML = '<p style="font-size: 0.9rem; color: #6B7280;">Nenhuma vistorias registrada.</p>';
                 return;
             }
 
@@ -672,7 +700,7 @@
                     <span style="color: #4B5563; font-size: 0.85rem;">
                         👤 Beneficiário: ${v.beneficiario || 'N/I'}<br>
                         📐 Atende Mínimo? ${v.atendeMinimo} | <strong>Área: ${v.areaCalculada || 0} m²</strong><br>
-                        📍 ${v.localizacao || 'Sem GPS'}
+                        📍 <span style="white-space: pre-line;">${v.localizacao || 'Sem GPS'}</span>
                     </span>
                     <div class="vistoria-photos">
                         ${v.fotos && Array.isArray(v.fotos) ? v.fotos.map(f => `<img src="${f}">`).join('') : ''}
