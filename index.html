@@ -16,7 +16,7 @@
             --surface: #FFFFFF;
             --text: #1F2937;
             --border: #D1D5DB;
-            --accent: #2563EB; /* Azul para botões utilitários */
+            --accent: #2563EB;
         }
 
         * {
@@ -123,7 +123,6 @@
             flex: 1;
         }
 
-        /* Área de upload de fotos escondida, ativada por botão customizado */
         input[type="file"] {
             display: none;
         }
@@ -131,7 +130,7 @@
         .btn-photo {
             background-color: #4B5563;
             color: white;
-            padding: 10px;
+            padding: 12px;
             border-radius: 6px;
             text-align: center;
             cursor: pointer;
@@ -140,7 +139,6 @@
             margin-bottom: 10px;
         }
 
-        /* Miniaturas das fotos */
         .preview-container {
             display: flex;
             gap: 8px;
@@ -177,22 +175,36 @@
             background: #F9FAFB;
             border-left: 4px solid var(--primary);
             padding: 12px;
-            margin-bottom: 10px;
+            margin-bottom: 14px;
             border-radius: 0 8px 8px 0;
             font-size: 0.9rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
 
         .vistoria-photos {
             display: flex;
-            gap: 4px;
+            gap: 6px;
             margin-top: 8px;
+            flex-wrap: wrap;
         }
 
         .vistoria-photos img {
-            width: 50px;
-            height: 50px;
+            width: 60px;
+            height: 60px;
             object-fit: cover;
+            border-radius: 6px;
+            border: 1px solid #E5E7EB;
+        }
+        
+        .btn-limpar {
+            background-color: #EF4444;
+            color: white;
+            border: none;
+            padding: 6px 12px;
             border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            margin-top: 10px;
         }
     </style>
 </head>
@@ -209,7 +221,7 @@
                 <h2>1. Identificação e Localização</h2>
                 <div class="form-group">
                     <label for="codigo">Código da Vistoria</label>
-                    <input type="text" id="codigo" required placeholder="Ex: VIST-2026-001">
+                    <input type="text" id="codigo" required placeholder="Ex: VIST-001">
                 </div>
                 <div class="form-group">
                     <label for="data">Data da Vistoria</label>
@@ -219,7 +231,7 @@
                 <div class="form-group">
                     <label for="localizacao">Coordenadas / GPS</label>
                     <div class="input-btn-group">
-                        <input type="text" id="localizacao" required placeholder="Clique em 'Pegar GPS' no terreno">
+                        <input type="text" id="localizacao" required placeholder="Clique em 'Pegar GPS'">
                         <button type="button" class="btn-utility" onclick="capturarGPS()">Pegar GPS</button>
                     </div>
                 </div>
@@ -244,8 +256,7 @@
                 <h2>3. Evidências Fotográficas</h2>
                 <div class="form-group">
                     <label class="btn-photo" for="fotoInput">📸 Tirar Foto do Terreno</label>
-                    <!-- O atributo 'capture="environment"' força o Android a abrir a câmera traseira diretamente -->
-                    <input type="file" id="fotoInput" accept="image/*" capture="environment" onchange="previewFotos(this)">
+                    <input type="file" id="fotoInput" accept="image/*" capture="environment" onchange="processarFoto(this)">
                     <div id="previewContainer" class="preview-container"></div>
                 </div>
 
@@ -262,16 +273,17 @@
         <div class="card">
             <h2>Vistorias Salvas no Aparelho</h2>
             <div id="listaVistorias"></div>
+            <button class="btn-limpar" onclick="limparTudo()">Apagar Todas as Vistorias</button>
         </div>
     </main>
 
     <script>
-        // Array temporária para guardar as fotos em Base64 antes de salvar
         let fotosBase64 = [];
 
+        // Inicializa data de hoje
         document.getElementById('data').value = new Date().toISOString().substring(0, 10);
 
-        // --- FUNÇÃO DO GPS ---
+        // --- GPS ---
         function capturarGPS() {
             const campoLocalizacao = document.getElementById('localizacao');
             campoLocalizacao.placeholder = "Buscando satélites...";
@@ -287,65 +299,108 @@
                         alert("Erro ao obter GPS. Certifique-se de que a localização está ativa.");
                         campoLocalizacao.placeholder = "Clique em 'Pegar GPS'";
                     },
-                    { enableHighAccuracy: true, timeout: 10000 } // Força alta precisão
+                    { enableHighAccuracy: true, timeout: 10000 }
                 );
             } else {
                 alert("Seu navegador não suporta geolocalização.");
             }
         }
 
-        // --- FUNÇÃO DA CÂMERA (PREVIEW) ---
-        function previewFotos(input) {
+        // --- COMPRESSOR DE IMAGEM DA CÂMERA ---
+        function processarFoto(input) {
             const container = document.getElementById('previewContainer');
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
                 
                 reader.onload = function(e) {
-                    // Adiciona a imagem na array temporária
-                    fotosBase64.push(e.target.result);
+                    const imgElement = new Image();
+                    imgElement.src = e.target.result;
                     
-                    // Renderiza a miniatura na tela
-                    const img = document.createElement('img');
-                    img.src = e.target.result;
-                    img.className = 'preview-img';
-                    container.appendChild(img);
+                    imgElement.onload = function() {
+                        // Cria um canvas para redimensionar a foto tirada pelo celular
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 800; // Reduz largura para 800px max (perfeito para relatórios)
+                        let width = imgElement.width;
+                        let height = imgElement.height;
+
+                        if (width > MAX_WIDTH) {
+                            height *= MAX_WIDTH / width;
+                            width = MAX_WIDTH;
+                        }
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        
+                        const ctx = canvas.getContext('2array') || canvas.getContext('2d');
+                        ctx.drawImage(imgElement, 0, 0, width, height);
+                        
+                        // Transforma em JPEG leve (qualidade 70%)
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                        
+                        // Salva e exibe miniatura
+                        fotosBase64.push(dataUrl);
+                        const thumb = document.createElement('img');
+                        thumb.src = dataUrl;
+                        thumb.className = 'preview-img';
+                        container.appendChild(thumb);
+                    }
                 }
-                
                 reader.readAsDataURL(input.files[0]);
             }
         }
 
-        // --- SALVAR NO LOCALSTORAGE ---
+        // --- SALVAR MÚLTIPLAS VISTORIAS ---
         function salvarVistoria(event) {
             event.preventDefault();
 
             const novaVistoria = {
+                id: Date.now(), // Gera um ID único para cada item
                 codigo: document.getElementById('codigo').value,
                 data: document.getElementById('data').value,
                 localizacao: document.getElementById('localizacao').value,
                 area: document.getElementById('area').value,
                 topografia: document.getElementById('topografia').value,
                 observacoes: document.getElementById('observacoes').value,
-                fotos: fotosBase64 // Guarda a lista de imagens em texto/Base64
+                fotos: [...fotosBase64] // Garante cópia real da array de fotos
             };
 
-            const lista = JSON.parse(localStorage.getItem('vistorias') || '[]');
-            lista.unshift(novaVistoria);
-            localStorage.setItem('vistorias', JSON.stringify(lista));
+            // Puxa histórico ou cria novo
+            let lista = [];
+            try {
+                lista = JSON.parse(localStorage.getItem('vistorias') || '[]');
+            } catch(e) {
+                lista = [];
+            }
+            
+            lista.unshift(novaVistoria); // Coloca a mais recente no topo
+            
+            try {
+                localStorage.setItem('vistorias', JSON.stringify(lista));
+                alert('Vistoria gravada com sucesso!');
+            } catch (error) {
+                alert('Erro de espaço: Fotos muito pesadas ou vistorias demais acumuladas. Limpe o histórico antigo.');
+                console.error(error);
+            }
 
-            // Reseta formulário e estados
+            // LIMPEZA COMPLETA DO FORMULÁRIO PARA A PRÓXIMA
             document.getElementById('vistoriaForm').reset();
             document.getElementById('data').value = new Date().toISOString().substring(0, 10);
             document.getElementById('previewContainer').innerHTML = '';
-            fotosBase64 = []; // Limpa fotos temporárias
+            document.getElementById('fotoInput').value = ""; // Limpa a memória física da câmera
+            fotosBase64 = []; 
             
-            alert('Vistoria e mídias gravadas localmente!');
             atualizarLista();
         }
 
-        // --- RENDERIZAR LISTA ---
+        // --- LISTAR VISTORIAS ---
         function atualizarLista() {
-            const lista = JSON.parse(localStorage.getItem('vistorias') || '[]');
+            let lista = [];
+            try {
+                lista = JSON.parse(localStorage.getItem('vistorias') || '[]');
+            } catch(e) {
+                lista = [];
+            }
+            
             const container = document.getElementById('listaVistorias');
             
             if (lista.length === 0) {
@@ -355,21 +410,28 @@
 
             container.innerHTML = lista.map(v => `
                 <div class="vistoria-item">
-                    <strong>Ref: ${v.codigo}</strong> - ${v.data}<br>
+                    <strong>Ref: ${v.codigo || 'Sem código'}</strong> - ${v.data || ''}<br>
                     <span style="color: #4B5563;">
-                        📍 ${v.localizacao}<br>
-                        Área: ${v.area ? v.area + ' m²' : 'N/I'} | Topo: ${v.topografia}
+                        📍 ${v.localizacao || 'Sem GPS'}<br>
+                        Área: ${v.area ? v.area + ' m²' : 'N/I'} | Topo: ${v.topografia || 'N/I'}
                     </span>
                     <div class="vistoria-photos">
-                        ${v.fotos ? v.fotos.map(f => `<img src="${f}">`).join('') : ''}
+                        ${v.fotos && Array.isArray(v.fotos) ? v.fotos.map(f => `<img src="${f}">`).join('') : ''}
                     </div>
                 </div>
             `).join('');
         }
 
+        function limparTudo() {
+            if(confirm("Tem certeza que deseja apagar TODAS as vistorias do aparelho?")) {
+                localStorage.removeItem('vistorias');
+                atualizarLista();
+            }
+        }
+
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js');
+                navigator.serviceWorker.register('sw.js').catch(err => console.log(err));
             });
         }
 
